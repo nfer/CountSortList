@@ -64,6 +64,15 @@ void TestCase_reset() {
     TEST_END();
 }
 
+void TestCase_size() {
+    CountSortList_setInitSize(4);
+    TEST_START();
+    int data[] = {1,2,3,4,5,6,7,8};
+    CountSortData result[] = {{1,1},{2,1},{3,1},{4,1},{5,1},{6,1},{7,1},{8,1}};
+    TEST_RUN(data, result);
+    TEST_END();
+}
+
 void TestCase_2_0() {
     TEST_START();
     int data[] = {1,3};
@@ -157,6 +166,7 @@ int main(int argc, char * argv[])
     TestCase_1_0();
     TestCase_1_1();
     TestCase_reset();
+    TestCase_size();
     TestCase_2_0();
     TestCase_2_1();
     TestCase_2_2();

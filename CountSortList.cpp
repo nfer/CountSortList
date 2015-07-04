@@ -4,7 +4,7 @@
 #include <string.h>
 #include "CountSortList.h"
 
-#define LIST_INCRESS_SIZE  (1024)
+#define LIST_INCREASE_SIZE  (1024)
 
 typedef struct SortLinkList {
     int index;
@@ -16,7 +16,7 @@ CountSortData * g_dataList = NULL;
 SortLinkList  * g_linkList = NULL;
 SortLinkList  * g_linkHead = NULL;
 SortLinkList  * g_linkTail = NULL;
-int g_listSize = LIST_INCRESS_SIZE;
+int g_listSize = LIST_INCREASE_SIZE;
 int g_dataSize = 0;
 int g_dataSum = 0;
 
@@ -29,18 +29,28 @@ void CountSortList_init() {
 void CountSortList_deinit() {
     free(g_dataList);
     free(g_linkList);
+    g_dataList = NULL;
+    g_linkList = NULL;
     g_linkHead = NULL;
     g_linkTail = NULL;
     g_dataSize = 0;
     g_dataSum = 0;
 }
 void CountSortList_reset() {
-    memset(g_dataList, 0x00, g_listSize * sizeof(CountSortData));
-    memset(g_linkList, 0x00, g_listSize * sizeof(SortLinkList));
+    memset(g_dataList, 0x00, g_dataSize * sizeof(CountSortData));
+    memset(g_linkList, 0x00, g_dataSize * sizeof(SortLinkList));
     g_linkHead = NULL;
     g_linkTail = NULL;
+    g_listSize = LIST_INCREASE_SIZE;
     g_dataSize = 0;
     g_dataSum = 0;
+}
+
+void CountSortList_setInitSize(int size) {
+    if (NULL == g_dataList && NULL == g_linkList)
+        g_listSize = size;
+    else
+        printf("Please invoke this function before CountSortList_init.\n");
 }
 
 void CountSortList_add(int data) {
@@ -73,7 +83,22 @@ void CountSortList_add(int data) {
         }
 
         g_dataSize++;
-        // FIXME: incress list size if necessary
+        if (g_dataSize > g_listSize*8/10) { // need increase list size
+            g_listSize *= 2;
+
+            CountSortData * dataList = (CountSortData *)realloc (g_dataList, g_listSize*sizeof(CountSortData));
+            if (dataList == NULL)
+                printf("realloc %ld memory, but failed.", g_listSize * sizeof(CountSortData));
+            else
+                g_dataList = dataList;
+
+            SortLinkList * linkList = (SortLinkList *)realloc (g_linkList, g_listSize*sizeof(SortLinkList));
+            if (linkList == NULL)
+                printf("realloc %ld memory, but failed.", g_listSize * sizeof(SortLinkList));
+            else
+                g_linkList = linkList;
+            // printf("increase list size to %d.\n", g_listSize);
+        }
         return ;
     }
     else {

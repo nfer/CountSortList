@@ -9,6 +9,7 @@ typedef struct CountSortData{
 void CountSortList_init();
 void CountSortList_deinit();
 void CountSortList_reset();
+void CountSortList_setInitSize(int size);
 
 void CountSortList_add(int data);
 void CountSortList_addArray(int * data, int size);
