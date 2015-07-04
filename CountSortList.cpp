@@ -88,13 +88,13 @@ void CountSortList_add(int data) {
 
             CountSortData * dataList = (CountSortData *)realloc (g_dataList, g_listSize*sizeof(CountSortData));
             if (dataList == NULL)
-                printf("realloc %ld memory, but failed.", g_listSize * sizeof(CountSortData));
+                printf("realloc %zd memory, but failed.", g_listSize * sizeof(CountSortData));
             else
                 g_dataList = dataList;
 
             SortLinkList * linkList = (SortLinkList *)realloc (g_linkList, g_listSize*sizeof(SortLinkList));
             if (linkList == NULL)
-                printf("realloc %ld memory, but failed.", g_listSize * sizeof(SortLinkList));
+                printf("realloc %zd memory, but failed.", g_listSize * sizeof(SortLinkList));
             else
                 g_linkList = linkList;
             // printf("increase list size to %d.\n", g_listSize);
