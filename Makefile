@@ -16,7 +16,7 @@
 CUR_DIR         = .
 
 # Sources:
-SRC_CUR         = $(wildcard $(CUR_DIR)/*.cpp)
+SRC_CUR         = $(wildcard $(CUR_DIR)/*.c)
 
 ### set variables before include make.rules
 debug ?= 1
@@ -27,6 +27,6 @@ include_dirs    = $(CUR_DIR)
 cpp_sources     = $(SRC_CUR)
 #link_libs       = pthread rt dl
 
-CXXFLAGS       += -Wno-invalid-offsetof -Wno-deprecated -g
+CFLAGS         += -Wno-deprecated -g -std=c99
 
 include make.rules
