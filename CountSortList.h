@@ -1,6 +1,8 @@
 #ifndef COUNT_SORTLIST_H_INCLUDED
 #define COUNT_SORTLIST_H_INCLUDED
 
+#define LIST_INIT_SIZE  (1024)
+
 typedef struct CountSortData{
     int data;
     int count;

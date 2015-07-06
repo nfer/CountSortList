@@ -4,19 +4,25 @@
 #include <string.h>
 #include "CountSortList.h"
 
-#define LIST_INCREASE_SIZE  (1024)
-
 typedef struct SortLinkList {
     int index;
     struct SortLinkList *prev;
     struct SortLinkList *next;
 }SortLinkList;
 
+static int findItemInDataList(int data);
+static void addDataToDataList(int data);
+static void incListSizeIfNeed();
+static void sortItemInLinkList(int idx, int data);
+static SortLinkList * findItemInLinkList(int data);
+static SortLinkList * findInsertSlot(int count, SortLinkList * curLink);
+static void moveBeforeLink(SortLinkList * curLink, SortLinkList * dstLink);
+
 CountSortData * g_dataList = NULL;
 SortLinkList  * g_linkList = NULL;
 SortLinkList  * g_linkHead = NULL;
 SortLinkList  * g_linkTail = NULL;
-int g_listSize = LIST_INCREASE_SIZE;
+int g_listSize = LIST_INIT_SIZE;
 int g_dataSize = 0;
 int g_dataSum = 0;
 
@@ -41,7 +47,7 @@ void CountSortList_reset() {
     memset(g_linkList, 0x00, g_dataSize * sizeof(SortLinkList));
     g_linkHead = NULL;
     g_linkTail = NULL;
-    g_listSize = LIST_INCREASE_SIZE;
+    g_listSize = LIST_INIT_SIZE;
     g_dataSize = 0;
     g_dataSum = 0;
 }
@@ -55,97 +61,15 @@ void CountSortList_setInitSize(int size) {
 
 void CountSortList_add(int data) {
     g_dataSum++;
-    int i = 0;
-    for (i=0; i<g_dataSize; i++) {
-        if (g_dataList[i].data == data)
-            break;
-    }
 
-    if (i == g_dataSize) { // not found this data in current list
-        g_dataList[i].data = data;
-        g_dataList[i].count = 1;
-
-        if (g_linkTail == NULL) {
-            g_linkHead = g_linkTail = g_linkList;
-            g_linkTail->index = 0;
-            g_linkTail->prev = NULL;
-            g_linkTail->next = NULL;
-        }
-        else {
-            // last tail
-            g_linkTail->next = g_linkList + g_dataSize;
-
-            // current tail
-            g_linkTail->next->prev = g_linkTail;
-            g_linkTail = g_linkTail->next;
-            g_linkTail->index = g_dataSize;
-            g_linkTail->next = NULL;
-        }
-
-        g_dataSize++;
-        if (g_dataSize > g_listSize*8/10) { // need increase list size
-            g_listSize *= 2;
-
-            CountSortData * dataList = (CountSortData *)realloc (g_dataList, g_listSize*sizeof(CountSortData));
-            if (dataList == NULL)
-                printf("realloc %zd memory, but failed.", g_listSize * sizeof(CountSortData));
-            else
-                g_dataList = dataList;
-
-            SortLinkList * linkList = (SortLinkList *)realloc (g_linkList, g_listSize*sizeof(SortLinkList));
-            if (linkList == NULL)
-                printf("realloc %zd memory, but failed.", g_listSize * sizeof(SortLinkList));
-            else
-                g_linkList = linkList;
-            // printf("increase list size to %d.\n", g_listSize);
-        }
-        return ;
+    int idx = findItemInDataList(data);
+    if (-1 == idx) { // not found this data in current list
+        addDataToDataList(data);
+        incListSizeIfNeed();
     }
     else {
-        g_dataList[i].count++;
-        // printf("[%d]new Count is %d\n", i, g_dataList[i].count);
-
-        SortLinkList  * link = g_linkTail;
-        SortLinkList  * curData = NULL;
-        // printf("g_linkHead is %p, g_linkTail is %p\n", g_linkHead, g_linkTail);
-
-        while (link && link->prev) {
-            // printf("check link->index %d, count %d\n", link->index, g_dataList[link->index].count);
-            if (g_dataList[link->index].data == data) { // has found the data
-                // printf("found it with link->index %d\n", link->index);
-                curData = link;
-                link->prev->next = link->next;
-                if (link->next)
-                    link->next->prev = link->prev;
-                if (link == g_linkTail) {
-                    g_linkTail = link->prev;
-                    // printf("new g_linkTail is %p\n", g_linkTail);
-                }
-                link = link->prev;
-                continue;
-            }
-
-            if (g_dataList[link->index].count == g_dataList[i].count) {
-                link->next->prev = curData;
-                curData->next = link->next;
-                link->next = curData;
-                curData->prev = link;
-                break;
-            }
-            link = link->prev;
-        }
-
-        if ((curData == NULL) && (link == g_linkHead || link == g_linkTail)) {
-            return;
-        }
-
-        if (link || link->prev == NULL) { //means curData is the max data
-            g_linkHead->prev = curData;
-            curData->next = g_linkHead;
-            curData->prev = NULL;
-            g_linkHead = curData;
-            // printf("new g_linkHead is %p\n", g_linkHead);
-        }
+        g_dataList[idx].count++;
+        sortItemInLinkList(idx, data);
     }
 }
 
@@ -181,12 +105,139 @@ void CountSortList_dump() {
         printf("[%d] data %d, count %d\n", i, g_dataList[i].data, g_dataList[i].count);
     }
 
-    int index = 0;
     SortLinkList  * link = g_linkHead;
+    char c = ' ';
     while(link) {
-        printf("[%d] link index %d, data %d, count %d\n", index, link->index,
+        if (link == g_linkHead)
+            c = 'H';
+        else if (link == g_linkTail)
+            c = 'T';
+        else
+            c = 'M';
+        printf("[%c] link index %d, data %d, count %d\n", c, link->index,
             g_dataList[link->index].data, g_dataList[link->index].count);
-        index++;
+
         link = link->next;
+    }
+}
+
+int findItemInDataList(int data) {
+    for (int i=0; i<g_dataSize; i++) {
+        if (g_dataList[i].data == data)
+            return i;
+    }
+    return -1;
+}
+
+void addDataToDataList(int data) {
+    g_dataList[g_dataSize].data = data;
+    g_dataList[g_dataSize].count = 1;
+
+    // current link
+    SortLinkList * curLink = &g_linkList[g_dataSize];
+    curLink->index = g_dataSize;
+    curLink->prev = g_linkTail;
+
+    if (g_dataSize == 0) { // the first data
+        g_linkHead = g_linkTail = curLink;
+    }
+    else {
+        g_linkTail->next = curLink;
+    }
+
+    g_linkTail = curLink;
+    g_dataSize++;
+}
+
+void incListSizeIfNeed() {
+    if (g_dataSize > g_listSize*8/10) {
+        g_listSize *= 2;
+
+        CountSortData * dataList = (CountSortData *)realloc (g_dataList, g_listSize*sizeof(CountSortData));
+        if (dataList == NULL) {
+            printf("realloc %zd memory, but failed.", g_listSize * sizeof(CountSortData));
+            exit(1);
+        }
+        else
+            g_dataList = dataList;
+
+        SortLinkList * linkList = (SortLinkList *)realloc (g_linkList, g_listSize*sizeof(SortLinkList));
+        if (linkList == NULL) {
+            printf("realloc %zd memory, but failed.", g_listSize * sizeof(SortLinkList));
+            exit(1);
+        }
+        else
+            g_linkList = linkList;
+    }
+}
+
+void sortItemInLinkList(int idx, int data) {
+    SortLinkList * curLink = findItemInLinkList(data);
+    int curCount = g_dataList[curLink->index].count;
+    SortLinkList * link = findInsertSlot(curCount, curLink);
+
+    if (NULL == link) {
+        // move after head
+        moveBeforeLink(curLink, g_linkHead);
+    }
+    else {
+        moveBeforeLink(curLink, link);
+    }
+}
+
+SortLinkList * findItemInLinkList(int data) {
+    SortLinkList  * link = g_linkTail;
+    while (link) {
+        if (g_dataList[link->index].data == data)
+            return link;
+
+        link = link->prev;
+    }
+
+    // shouldn't be here
+    return NULL;
+}
+
+SortLinkList * findInsertSlot(int count, SortLinkList * curLink) {
+    SortLinkList  * link = curLink->prev;
+    while (link) {
+        if (g_dataList[link->index].count >= count)
+            return link->next;
+        if (link->prev && g_dataList[link->index].count < count && g_dataList[link->prev->index].count >= count)
+            return link;
+
+        link = link->prev;
+    }
+
+    return NULL;
+}
+
+void moveBeforeLink(SortLinkList * curLink, SortLinkList * dstLink) {
+    if (curLink == dstLink)
+        return;
+
+    // remove curLink from linkList
+    if (curLink == g_linkTail) {
+        g_linkTail = curLink->prev;
+        g_linkTail->next = NULL;
+    }
+    else {
+        curLink->prev->next = curLink->next;
+        curLink->next->prev = curLink->prev;
+    }
+
+    // add link before dstLink
+    if (dstLink == g_linkHead) {
+        curLink->prev = NULL;
+        g_linkHead = curLink;
+        curLink->next = dstLink;
+        dstLink->prev = curLink;
+    }
+    else {
+        dstLink->prev->next = curLink;
+        curLink->prev = dstLink->prev;
+
+        curLink->next = dstLink;
+        dstLink->prev = curLink;
     }
 }
