@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "CountSortList.h"
+#define COLOR_OK
 #define CTEST_MAIN
 #include "ctest.h"
 
@@ -13,16 +14,13 @@
 #define TEST_RUN(array, result) \
     { \
         const int arraySize = sizeof(array)/sizeof(array[0]); \
-        CountSortList_addArray(array, arraySize); \
-        int sum = 0, i; \
-        for (i=0; i<arraySize; i++) \
-            sum++; \
-        int outputSum = 0; \
         const int resultSize = sizeof(result)/sizeof(result[0]); \
+        CountSortList_addArray(array, arraySize); \
+        int sum = 0; \
         CountSortData outputArray[resultSize]; \
-        CountSortList_output(outputArray, resultSize, &outputSum); \
-        ASSERT_EQUAL(sum, outputSum); \
-        for (i=0; i<resultSize; i++) { \
+        CountSortList_output(outputArray, resultSize, &sum); \
+        ASSERT_EQUAL(arraySize, sum); \
+        for (int i=0; i<resultSize; i++) { \
             ASSERT_EQUAL(result[i].data, outputArray[i].data); \
             ASSERT_EQUAL(result[i].count, outputArray[i].count); \
         } \
@@ -51,6 +49,14 @@ CTEST(Base, addArray) {
     TEST_END();
 }
 
+CTEST(Base, addMore) {
+    TEST_START();
+    int data[] = {1,2};
+    CountSortData result[] = {{1,1},{2,1}};
+    TEST_RUN(data, result);
+    TEST_END();
+}
+
 CTEST(Base, reset) {
     TEST_START();
     CountSortList_add(1);
@@ -70,91 +76,50 @@ CTEST(Base, size) {
     TEST_END();
 }
 
-void TestCase_2_0() {
+CTEST(SortData, NoNeedReSort) {
     TEST_START();
-    int data[] = {1,3};
-    CountSortData result[] = {{1,1}, {3,1}};
-    TEST_RUN(data, result);
+    {
+        // add at head, no need re-sort
+        int data[] = {1,1};
+        CountSortData result[] = {{1,2}};
+        TEST_RUN(data, result);
+    }
+    CountSortList_reset();
+    {
+        // prev's count is bigger than cur's, no need re-sort
+        int data[] = {1,2,1,2};
+        CountSortData result[] = {{1,2},{2,2}};
+        TEST_RUN(data, result);
+    }
     TEST_END();
 }
 
-void TestCase_2_1() {
+CTEST(SortData, NeedReSort) {
     TEST_START();
-    int data[] = {1,1,3};
-    CountSortData result[] = {{1,2}, {3,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_2_2() {
-    TEST_START();
-    int data[] = {1,3,3};
-    CountSortData result[] = {{3,2}, {1,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_2_3() {
-    TEST_START();
-    int data[] = {1,3,1};
-    CountSortData result[] = {{1,2}, {3,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_0() {
-    TEST_START();
-    int data[] = {1,3,5};
-    CountSortData result[] = {{1,1}, {3,1}, {5,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_1() {
-    TEST_START();
-    int data[] = {1,1,3,5};
-    CountSortData result[] = {{1,2}, {3,1}, {5,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_2() {
-    TEST_START();
-    int data[] = {1,3,1,5};
-    CountSortData result[] = {{1,2}, {3,1}, {5,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_3() {
-    TEST_START();
-    int data[] = {1,3,5,1};
-    CountSortData result[] = {{1,2}, {3,1}, {5,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_4() {
-    TEST_START();
-    int data[] = {1,3,3,5};
-    CountSortData result[] = {{3,2}, {1,1}, {5,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_5() {
-    TEST_START();
-    int data[] = {1,3,5,3};
-    CountSortData result[] = {{3,2}, {1,1}, {5,1}};
-    TEST_RUN(data, result);
-    TEST_END();
-}
-
-void TestCase_3_6() {
-    TEST_START();
-    int data[] = {1,3,5,5};
-    CountSortData result[] = {{5,2}, {1,1}, {3,1}};
-    TEST_RUN(data, result);
+    {
+        // sort effect no head, no tail {a,b,c,d} => {a,c,b,d}
+        int data[] = {1,1,1,2,2,3,3,4,3};
+        CountSortData result[] = {{2,2},{1,1},{3,1}};
+        TEST_RUN(data, result);
+    }
+    {
+        // sort effect head {a,b,c} => {b,a,c}
+        int data[] = {1,2,3,2};
+        CountSortData result[] = {{2,2},{1,1},{3,1}};
+        TEST_RUN(data, result);
+    }
+    {
+        // sort effect tail {a,b,c} => {a,c,b}
+        int data[] = {1,1,2,3,3};
+        CountSortData result[] = {{1,2},{3,2},{2,1}};
+        TEST_RUN(data, result);
+    }
+    {
+        // sort effect head, tail {a,b} => {b,a}
+        int data[] = {1,2,2};
+        CountSortData result[] = {{2,2},{1,1}};
+        TEST_RUN(data, result);
+    }
     TEST_END();
 }
 
