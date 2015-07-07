@@ -14,17 +14,19 @@
 
 # Directories:
 CUR_DIR         = .
+CSL_DIR         = ..
 
 # Sources:
 SRC_CUR         = $(wildcard $(CUR_DIR)/*.c)
+SRC_CSL         = $(wildcard $(CSL_DIR)/*.c)
 
 ### set variables before include make.rules
 debug ?= 1
 quiet ?= 1
 
 out_executable  = CountSortListTest
-include_dirs    = $(CUR_DIR)
-cpp_sources     = $(SRC_CUR)
+include_dirs    = $(CUR_DIR) $(CSL_DIR)
+cpp_sources     = $(SRC_CUR) $(SRC_CSL)
 #link_libs       = pthread rt dl
 
 CFLAGS         += -Wno-deprecated -g -std=c99
